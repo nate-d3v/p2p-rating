@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 
 export async function getServerSideProps() {
 	try {
-		const dbData = await prisma.userTest.findMany();
+		const dbData = await prisma.user.findMany();
 		return { props: { dbData } };
 	} catch (err) {
 		console.log(err);
