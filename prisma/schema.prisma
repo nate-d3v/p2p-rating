@@ -10,7 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model UserTest {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   address String
   verified Boolean

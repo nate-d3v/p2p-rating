@@ -9,22 +9,32 @@ const prisma = new PrismaClient();
 
 export async function getServerSideProps() {
 	try {
-		const dbData = await prisma.user.findMany();
+		const dbData = await prisma.userTest.findMany();
 		return { props: { dbData } };
 	} catch (err) {
 		console.log(err);
 	}
 }
 
-export async function dbRequest(data: any, method: any) {
-	const request = await fetch('/api/db', {
-		method: method,
-		body: JSON.stringify(data),
-		headers: {
-			'Content-Type': 'application/json',
-		},
-	});
-	return request.json();
+export async function dbRequest(method: any, data?: any, address?: any) {
+	if (method === 'GET') {
+		const request = await fetch(`/api/db?address=${address}`, {
+			method: method,
+			headers: {
+				'Content-Type': 'application/json',
+			},
+		});
+		return request.json();
+	} else {
+		const request = await fetch('/api/db', {
+			method: method,
+			body: JSON.stringify(data),
+			headers: {
+				'Content-Type': 'application/json',
+			},
+		});
+		return request.json();
+	}
 }
 
 type Address = `0x${string}`;
@@ -36,28 +46,40 @@ export default function Home({ dbData }: any) {
 	const [ownAddress, setOwnAddress] = useState<Address | ''>('');
 	const [activeUserRatings, setActiveUserRatings] = useState([]);
 	const [requestedUserRatings, setRequestedUserRatings] = useState([]);
+	const [activeUserVerified, setActiveUserVerified] = useState(false);
+	const [requestedUserVerified, setRequestedUserVerified] = useState(false);
 
 	useEffect(() => {
 		if (isConnected) {
 			setOwnAddress(address!);
-			setActiveUserRatings(
-				dbData.find((el: any) => el.address === address).ratings
-			);
 		}
 	}, [isConnected]);
 
 	useEffect(() => {
+		if (ownAddress) {
+			const getActiveUserData = async () => {
+				const userData = await dbRequest('GET', undefined, ownAddress);
+				if (userData) {
+					setActiveUserRatings(userData.ratings);
+					setActiveUserVerified(userData.verified);
+				}
+			};
+			getActiveUserData();
+		}
+	}, [ownAddress]);
+
+	useEffect(() => {
 		if (requestedAddress !== '') {
-			//should be a GET request each time
-			setRequestedUserRatings(
-				dbData.find((el: any) => el.address === requestedAddress).ratings
-			);
+			const getRequestedAddressData = async () => {
+				const userData = await dbRequest('GET', undefined, requestedAddress);
+				setRequestedUserRatings(userData.ratings);
+				setRequestedUserVerified(userData.verified);
+			};
+			getRequestedAddressData();
 		}
 	}, [requestedAddress]);
 
-	const onInputChange = (e: any) => {
-		setInputValue(e.target.value);
-	};
+	useEffect(() => {}, [requestedUserRatings]);
 
 	const onSearch = (searchValue: any) => {
 		setInputValue(searchValue);
@@ -86,17 +108,23 @@ export default function Home({ dbData }: any) {
 					<Profile
 						address={ownAddress}
 						isOwn={true}
-						activeUserAddress={ownAddress}
 						ratings={activeUserRatings}
+						isVerified={activeUserVerified}
 					/>
 					<Profile
 						address={requestedAddress}
 						isOwn={false}
-						activeUserAddress={ownAddress}
 						ratings={requestedUserRatings}
+						isVerified={requestedUserVerified}
+						activeUserAddress={ownAddress}
+						dbFunction={dbRequest}
 					/>
 				</div>
-				<input type="text" value={inputValue} onChange={onInputChange} />
+				<input
+					type="text"
+					value={inputValue}
+					onChange={(e: any) => setInputValue(e.target.value)}
+				/>
 				<button
 					onClick={() => {
 						onSearch(inputValue);
@@ -107,14 +135,11 @@ export default function Home({ dbData }: any) {
 				{inputValue.length === 42 && inputValue !== requestedAddress && (
 					<button
 						onClick={async () => {
-							const res = await dbRequest(
-								{
-									data: {
-										address: inputValue,
-									},
+							const res = await dbRequest('POST', {
+								data: {
+									address: inputValue,
 								},
-								'POST'
-							);
+							});
 						}}
 					>
 						Add user
