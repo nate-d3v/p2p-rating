@@ -9,33 +9,49 @@ export default async function handler(
 ) {
 	if (req.method === 'POST') {
 		const { data } = req.body;
-		const createUser = await prisma.userTest.create({
-			data: {
+		const getUser = await prisma.userTest.findFirst({
+			where: {
 				address: data.address,
-				verified: false,
-				ratings: [],
 			},
 		});
-		res.status(200).json(createUser);
+		if (!getUser) {
+			const createUser = await prisma.userTest.create({
+				data: {
+					address: data.address,
+					verified: false,
+					ratings: [],
+				},
+			});
+			res.status(200).json(createUser);
+		}
 	} else if (req.method === 'PUT') {
 		const { data } = req.body;
-		let resObj = {};
 		const getUser = await prisma.userTest.findFirst({
 			where: {
 				address: data.requestedAddress,
 			},
 		});
-
 		if (data.isOwn === true) {
-			const updateVerified = await prisma.userTest.update({
-				where: {
-					id: getUser!.id,
-				},
-				data: {
-					verified: true,
-				},
-			});
-			resObj = updateVerified;
+			if (!getUser) {
+				const createUser = await prisma.userTest.create({
+					data: {
+						address: data.requestedAddress,
+						verified: true,
+						ratings: [],
+					},
+				});
+				res.status(200).json(createUser);
+			} else {
+				const updateVerified = await prisma.userTest.update({
+					where: {
+						id: getUser!.id,
+					},
+					data: {
+						verified: true,
+					},
+				});
+				res.status(200).json(updateVerified);
+			}
 		} else if (data.isOwn === false) {
 			const ratings = getUser?.ratings as Prisma.JsonArray;
 
@@ -50,10 +66,9 @@ export default async function handler(
 						ratings: ratings,
 					},
 				});
-				resObj = updateRatings;
+				res.status(200).json(updateRatings);
 			}
 		}
-		res.status(200).json(resObj);
 	} else if (req.method === 'GET') {
 		const { address } = req.query;
 		const getUser = await prisma.userTest.findFirst({

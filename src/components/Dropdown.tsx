@@ -10,7 +10,7 @@ export default function Dropdown({ data, value, searchFunction }: any) {
 
 	return (
 		<>
-			<div className="flex flex-col">
+			<div className="flex flex-col border-2 border-gray-200 px-2">
 				{addressesArray.slice(0, 5).map((item: any) => (
 					<h3 key={item.id} onClick={() => searchFunction(item.address)}>
 						{item.address}

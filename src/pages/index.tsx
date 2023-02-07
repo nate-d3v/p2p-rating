@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { PrismaClient } from '@prisma/client';
 import { Dropdown, Profile } from '@/components';
 import { useAccount } from 'wagmi';
+import { useRouter } from 'next/router';
 
 const prisma = new PrismaClient();
 
@@ -40,6 +41,7 @@ export async function dbRequest(method: any, data?: any, address?: any) {
 type Address = `0x${string}`;
 
 export default function Home({ dbData }: any) {
+	const router = useRouter();
 	const { address, isConnected } = useAccount();
 	const [inputValue, setInputValue] = useState<Address | ''>('');
 	const [requestedAddress, setRequestedAddress] = useState<Address | ''>('');
@@ -52,6 +54,9 @@ export default function Home({ dbData }: any) {
 	useEffect(() => {
 		if (isConnected) {
 			setOwnAddress(address!);
+		} else {
+			setOwnAddress('');
+			setRequestedAddress('');
 		}
 	}, [isConnected]);
 
@@ -79,7 +84,9 @@ export default function Home({ dbData }: any) {
 		}
 	}, [requestedAddress]);
 
-	useEffect(() => {}, [requestedUserRatings]);
+	useEffect(() => {
+		console.log(requestedUserRatings);
+	}, [requestedUserRatings]);
 
 	const onSearch = (searchValue: any) => {
 		setInputValue(searchValue);
@@ -89,6 +96,7 @@ export default function Home({ dbData }: any) {
 				.includes(searchValue);
 			if (userExists) {
 				setRequestedAddress(searchValue);
+				setInputValue('');
 			} else {
 				setRequestedAddress('');
 			}
@@ -103,13 +111,17 @@ export default function Home({ dbData }: any) {
 				<link rel="icon" href="/favicon.ico" />
 			</Head>
 			<main className="flex flex-col min-h-screen">
-				<Web3Button />
-				<div className="flex">
+				<div className="flex justify-center my-6">
+					<Web3Button icon="hide" />
+				</div>
+				<div className="flex min-h-[55vh] justify-evenly">
 					<Profile
 						address={ownAddress}
 						isOwn={true}
 						ratings={activeUserRatings}
 						isVerified={activeUserVerified}
+						activeUserAddress={ownAddress}
+						dbFunction={dbRequest}
 					/>
 					<Profile
 						address={requestedAddress}
@@ -120,32 +132,42 @@ export default function Home({ dbData }: any) {
 						dbFunction={dbRequest}
 					/>
 				</div>
-				<input
-					type="text"
-					value={inputValue}
-					onChange={(e: any) => setInputValue(e.target.value)}
-				/>
-				<button
-					onClick={() => {
-						onSearch(inputValue);
-					}}
-				>
-					Search
-				</button>
-				{inputValue.length === 42 && inputValue !== requestedAddress && (
+				<div className="flex flex-col items-center min-h-[30vh] mt-4">
+					<input
+						type="text"
+						value={inputValue}
+						onChange={(e: any) => setInputValue(e.target.value)}
+						className="min-w-[24rem] border-2 border-gray-200 mb-2"
+					/>
 					<button
-						onClick={async () => {
-							const res = await dbRequest('POST', {
-								data: {
-									address: inputValue,
-								},
-							});
+						onClick={() => {
+							onSearch(inputValue);
 						}}
+						className="bg-blue-600 rounded-lg text-lg text-white px-3 py-2 font-medium"
 					>
-						Add user
+						Search
 					</button>
-				)}
-				<Dropdown data={dbData} value={inputValue} searchFunction={onSearch} />
+					{inputValue.length === 42 && inputValue !== requestedAddress && (
+						<button
+							onClick={async () => {
+								const res = await dbRequest('POST', {
+									data: {
+										address: inputValue,
+									},
+								});
+								router.reload();
+							}}
+							className="bg-blue-600 rounded-lg text-lg text-white px-3 py-2 font-medium mt-2"
+						>
+							Add user
+						</button>
+					)}
+					<Dropdown
+						data={dbData}
+						value={inputValue}
+						searchFunction={onSearch}
+					/>
+				</div>
 			</main>
 		</>
 	);
