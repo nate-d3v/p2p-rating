@@ -29,7 +29,11 @@ export default function App({ Component, pageProps }: AppProps) {
 			<WagmiConfig client={wagmiClient}>
 				<Component {...pageProps} />
 			</WagmiConfig>
-			<Web3Modal projectId={projectId} ethereumClient={ethereumClient} />
+			<Web3Modal
+				projectId={projectId}
+				ethereumClient={ethereumClient}
+				themeColor={'blackWhite'}
+			/>
 		</>
 	);
 }
